@@ -1,6 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+const BACKEND_URL = process.env.FRAUD_API_URL_SERVER  || "http://localhost:8000";
+// Ensure BACKEND_URL is set
+if (!BACKEND_URL) {
+  throw new Error("BACKEND_URL environment variable is not set");
+}
+
+// Ensure process and console are available in the global scope
 
 export const config = {
   api: {
