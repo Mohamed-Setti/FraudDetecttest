@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-const BACKEND_URL = process.env.FRAUD_API_URL_SERVER  || "http://localhost:8000";
+const BACKEND_URL = process.env.FRAUD_API_URL_SERVER ?? "http://localhost:5000";
+
 // Ensure BACKEND_URL is set
 if (!BACKEND_URL) {
   throw new Error("BACKEND_URL environment variable is not set");
@@ -15,21 +16,22 @@ export const config = {
 };
 
 function sanitizeRequestHeaders(headers: NextApiRequest["headers"]) {
-  const out: Record<string, string> = {};
-  for (const [k, v] of Object.entries(headers)) {
-    if (!v) continue;
-    const key = k.toLowerCase();
+  const sanitized: Record<string, string> = {};
+  Object.entries(headers).forEach(([key, value]) => {
+    if (!value) return;
+    const lowerKey = key.toLowerCase();
     // Strip hop-by-hop headers or headers that should not be forwarded
-    if (["host", "connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailer", "transfer-encoding", "upgrade"].includes(key)) {
-      continue;
-    }
-    out[key] = Array.isArray(v) ? v.join(",") : String(v);
-  }
-  return out;
+    if (["host", "content-length", "connection"].includes(lowerKey)) return;
+    sanitized[lowerKey] = Array.isArray(value) ? value.join(",") : String(value);
+  });
+  return sanitized;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  
+  console.log("backend URL:", BACKEND_URL)
   const url = `${BACKEND_URL}/predict`;
+  console.log("url :", url)
 
   try {
     // Read request body as Buffer for non-GET/HEAD
@@ -44,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Convert Buffer to a BodyInit-friendly type (Uint8Array)
-    let bodyToSend: BodyInit | undefined = undefined;
+    let bodyToSend: BodyInit | undefined;
     if (incomingBuffer) {
       // Create an ArrayBuffer view that correctly accounts for Buffer byteOffset/length
       bodyToSend = new Uint8Array(incomingBuffer);
@@ -56,6 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!forwardHeaders["content-type"] && req.headers["content-type"]) {
       forwardHeaders["content-type"] = String(req.headers["content-type"]);
     }
+    forwardHeaders["accept-encoding"] = "identity";
 
     // Proxy the request to the backend
     const backendResp = await fetch(url, {
@@ -67,7 +70,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Copy response headers (except hop-by-hop)
     backendResp.headers.forEach((value, name) => {
       const n = name.toLowerCase();
-      if (["transfer-encoding", "connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailer", "upgrade"].includes(n)) {
+      if (
+        [
+          "transfer-encoding",
+          "connection",
+          "keep-alive",
+          "proxy-authenticate",
+          "proxy-authorization",
+          "te",
+          "trailer",
+          "upgrade",
+          "content-encoding",
+        ].includes(n)
+      ) {
         return;
       }
       res.setHeader(name, value);

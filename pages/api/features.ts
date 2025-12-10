@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+const BACKEND_URL = process.env.BACKEND_URL || "https://xgboost-faud-detect.onrender.com";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {

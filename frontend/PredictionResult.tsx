@@ -38,14 +38,14 @@ export default function PredictionResult({ result, labels = ["legit", "fraud"] }
         )}
       </div>
 
-      {result.sample_inputs && (
+      {/* {result.sample_inputs && (
         <div style={{ marginTop: 10 }}>
           <h4>Input (sample)</h4>
           <pre style={{ whiteSpace: "pre-wrap", background: "#fff", padding: 8, borderRadius: 6 }}>
             {JSON.stringify(result.sample_inputs[0], null, 2)}
           </pre>
         </div>
-      )}
+      )} */}
     </div>
   );
 }
